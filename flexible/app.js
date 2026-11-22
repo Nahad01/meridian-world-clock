@@ -39,10 +39,10 @@ function shortTime(t,z){
 function dateLabel(t,z,year=false){return formatter(z,{weekday:'short',day:'numeric',month:'short',...(year?{year:'numeric'}:{})}).format(t)}
 function phase(h){return h<6||h>=20?'night':h<8?'dawn':h<18?'day':'dusk'}
 let cards=[];
-function buildCards(){ $('cards').replaceChildren();$('city').replaceChildren();$('tableHead').replaceChildren();cards=places.map(p=>{
+function buildCards(){ $('cards').replaceChildren();$('locationList').replaceChildren();$('city').replaceChildren();$('tableHead').replaceChildren();cards=places.map(p=>{
  const card=document.createElement('article');card.className='clock';
- card.innerHTML='<h3>'+p.name+'</h3><div class="country">'+p.country+'</div><div class="landscape"></div><div class="digits"><button class="hour"></button><span aria-hidden="true">:</span><button class="minute"></button><button class="period"></button></div><div class="date"></div><div class="bar"></div><div class="barlabel"><span class="phase"></span><span>Drag to set time</span></div>';
- const remove=document.createElement('button');remove.textContent='Remove';remove.className='remove';remove.setAttribute('aria-label','Remove '+p.name);remove.onclick=()=>{if(places.length===1){message('Keep at least one location.');return}places.splice(places.indexOf(p),1);if(selected===p)selected=places[0];updateCities()};card.append(remove);
+ card.innerHTML='<h3>'+p.name+'</h3><div class="country">'+p.country+'</div><div class="landscape"></div><div class="digits"><button class="hour"></button><span aria-hidden="true">:</span><button class="minute"></button><button class="period"></button></div><div class="date"></div><div class="bar"></div><div class="barlabel"><span class="phase"></span><span>Drag time</span></div>';
+ const remove=document.createElement('button');remove.type='button';remove.textContent='Remove';remove.className='remove';remove.setAttribute('aria-label','Remove '+p.name);remove.onclick=()=>{if(places.length===1){message('Keep at least one location.');return}places.splice(places.indexOf(p),1);if(selected===p)selected=places[0];updateCities()};const item=document.createElement('div');item.className='location-item';const label=document.createElement('span');label.textContent=p.name;item.append(label,remove);$('locationList').append(item);
  $('city').add(new Option(p.name+' · '+p.country,p.id));const th=document.createElement('th');th.textContent=p.name;$('tableHead').append(th);
  $('cards').append(card);
  const q=s=>card.querySelector('.'+s);
@@ -101,7 +101,7 @@ let todays=[];
 function render(){
  const t=now(),current=local(t,selected.zone),range=$('range').value;
  document.body.classList.toggle('planning',fixed!==null);
- $('state').textContent=fixed===null?'Live clocks':'Selected time';
+ $('state').textContent=fixed===null?'Live':'Selected';$('frontDate').textContent=dateLabel(t,selected.zone,true);
  for(const c of cards){
   const w=local(t,c.p.zone),ph=phase(w.h),hourLabel=prefs.hour24?pad(w.h):pad(w.h%12||12);
   c.h.textContent=hourLabel;c.m.textContent=pad(w.m);c.h.setAttribute('aria-valuenow',w.h);c.h.setAttribute('aria-valuetext',shortTime(t,c.p.zone));c.m.setAttribute('aria-valuenow',w.m);
@@ -181,7 +181,7 @@ setInterval(tick,1000);document.addEventListener('visibilitychange',tick);
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('./service-worker.js').catch(()=>message('Offline installation is unavailable.'));
 
 
-function updateCities(){prefs.locations=places.map(p=>p.zone);save();buildCards();render();scheduleHash()}
+function updateCities(){prefs.locations=places.map(p=>p.zone);save();buildCards();render();scheduleHash();$('city').value=selected.id;if($('dlg').open){formInstant=now();fillForm()}}
 function cityResults(){const q=$('searchCity').value.toLowerCase().trim(),box=$('cityResults');box.replaceChildren();const found=zones.filter(z=>!places.some(p=>p.zone===z)&&z.replaceAll('_',' ').toLowerCase().includes(q)).slice(0,25);for(const z of found){const b=document.createElement('button');b.textContent=locationFor(z).name+' · '+z;b.onclick=()=>{if(places.length>=12){message('Show up to 12 locations.');return}places.push(locationFor(z));updateCities();$('cityDialog').close()};box.append(b)}if(!found.length)box.textContent='No matches. Try a nearby major city.'}
 $('addCity').onclick=()=>{$('searchCity').value='';cityResults();$('cityDialog').showModal();$('searchCity').focus()};$('searchCity').oninput=cityResults;$('closeCities').onclick=()=>$('cityDialog').close();
 $('suggest').onclick=()=>{const start=Math.ceil(now()/(30*MIN))*30*MIN,duration=+$('duration').value*MIN,results=[];for(let t=start;t<start+7*DAY;t+=30*MIN){let score=0,awake=true;for(const p of places){for(const point of [t,t+duration-MIN]){const w=local(point,p.zone),h=w.h+w.m/60;awake&&=h>=7&&h<23;score+=h>=9&&h<21?0:h>=7&&h<23?2:12;score+=Math.abs(h-15)/24}}results.push({t,score,awake})}results.sort((a,b)=>a.score-b.score||a.t-b.t);const chosen=[];for(const r of results){if(chosen.every(c=>Math.abs(c.t-r.t)>=3*HOUR))chosen.push(r);if(chosen.length===3)break}const box=$('suggestions');box.replaceChildren();const note=document.createElement('p');note.textContent=chosen[0].awake?'These times keep everyone within 07:00–23:00 for the full call.':'No shared waking time found. These are the least disruptive options.';box.append(note);for(const r of chosen){const b=document.createElement('button');b.textContent=lines(r.t).join(' | ');b.onclick=()=>{change(r.t);message('Suggested call time selected.')};box.append(b)}};
