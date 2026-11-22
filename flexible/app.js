@@ -58,6 +58,12 @@ function buildCards(){ $('cards').replaceChildren();$('city').replaceChildren();
   b.onlostpointercapture=b.onpointercancel=()=>{drag=null};
   b.onclick=()=>{if(!dragged)openForm(p);dragged=false};
  }
+ const bar=q('bar');bar.classList.add('interactive');
+ const scrub=document.createElement('input');scrub.type='range';scrub.min='0';scrub.max='1439';scrub.step='1';scrub.className='city-scrub';scrub.setAttribute('aria-label',p.name+' time of day');bar.append(scrub);
+ let scrubBase=null;
+ scrub.addEventListener('pointerdown',()=>{scrubBase=now()});
+ for(const event of ['pointerup','pointercancel','lostpointercapture','blur'])scrub.addEventListener(event,()=>{scrubBase=null});
+ scrub.oninput=()=>{const t=timelineTime(scrubBase??now(),p.zone,+scrub.value);if(t!==undefined)change(t,p)};
  q('period').onclick=()=>shift(local(now(),p.zone).h<12?12:-12,HOUR);
  return {p,card,h:q('hour'),m:q('minute'),a:q('period'),date:q('date'),phase:q('phase'),art:q('landscape'),bar:q('bar')};
 });
@@ -99,7 +105,7 @@ function render(){
   const w=local(t,c.p.zone),ph=phase(w.h),hourLabel=prefs.hour24?pad(w.h):pad(w.h%12||12);
   c.h.textContent=hourLabel;c.m.textContent=pad(w.m);c.h.setAttribute('aria-valuenow',w.h);c.h.setAttribute('aria-valuetext',shortTime(t,c.p.zone));c.m.setAttribute('aria-valuenow',w.m);
   c.a.hidden=!!prefs.hour24;c.a.textContent=w.h<12?'AM':'PM';c.a.setAttribute('aria-label',c.p.name+', '+c.a.textContent+', switch by 12 hours');
-  c.date.textContent=dateLabel(t,c.p.zone);c.bar.style.setProperty('--pos',(w.h*60+w.m)/14.4+'%');
+  c.date.textContent=dateLabel(t,c.p.zone);c.bar.style.setProperty('--pos',(w.h*60+w.m)/14.4+'%');const scrub=c.bar.querySelector('input');scrub.value=w.h*60+w.m;scrub.setAttribute('aria-valuetext',dateLabel(t,c.p.zone)+' '+shortTime(t,c.p.zone));
   if(c.card.dataset.phase!==ph){c.card.dataset.phase=ph;c.phase.textContent={day:'Daylight',night:'Night',dawn:'Morning',dusk:'Evening'}[ph];c.art.innerHTML=landscape(c.p.id,ph==='night')}
  }
  $('basis').textContent=selected.name+' · '+dateLabel(t,selected.zone)+' · '+shortTime(t,selected.zone);

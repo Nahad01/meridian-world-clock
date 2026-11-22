@@ -55,3 +55,6 @@ function daylightChanges(start,end){
  return places.filter(({zone})=>offset(start,zone)!==offset(end-1,zone)).map(p=>p.name);
 }
 
+
+// Resolve a local bar position; preserve the nearest occurrence of a repeated hour.
+function timelineTime(base,zone,minute){const date=local(base,zone).date;for(let m=minute;m<Math.min(1440,minute+181);m++){const options=candidates(date,pad(Math.floor(m/60))+':'+pad(m%60),zone);if(options.length)return options.reduce((a,b)=>Math.abs(a-base)<=Math.abs(b-base)?a:b)}}
