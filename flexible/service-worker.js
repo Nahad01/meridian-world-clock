@@ -1,5 +1,5 @@
 'use strict';
-const prefix='meridian:'+self.registration.scope+':',cacheName=prefix+'v4';
+const prefix='meridian:'+self.registration.scope+':',cacheName=prefix+'v5';
 const files=['./index.html','./style.css','./time.js','./scenery.js','./app.js','./manifest.json','./icons/180.png','./icons/192.png','./icons/512.png'];
 self.addEventListener('install',event=>event.waitUntil((async()=>{
  const cache=await caches.open(cacheName);

@@ -41,7 +41,7 @@ function phase(h){return h<6||h>=20?'night':h<8?'dawn':h<18?'day':'dusk'}
 let cards=[];
 function buildCards(){ $('cards').replaceChildren();$('city').replaceChildren();$('tableHead').replaceChildren();cards=places.map(p=>{
  const card=document.createElement('article');card.className='clock';
- card.innerHTML='<h3>'+p.name+'</h3><div class="country">'+p.country+'</div><div class="landscape"></div><div class="digits"><button class="hour"></button><span aria-hidden="true">:</span><button class="minute"></button><button class="period"></button></div><div class="date"></div><div class="bar"></div><div class="barlabel"><span class="phase"></span><span>24h</span></div>';
+ card.innerHTML='<h3>'+p.name+'</h3><div class="country">'+p.country+'</div><div class="landscape"></div><div class="digits"><button class="hour"></button><span aria-hidden="true">:</span><button class="minute"></button><button class="period"></button></div><div class="date"></div><div class="bar"></div><div class="barlabel"><span class="phase"></span><span>Drag to set time</span></div>';
  const remove=document.createElement('button');remove.textContent='Remove';remove.className='remove';remove.setAttribute('aria-label','Remove '+p.name);remove.onclick=()=>{if(places.length===1){message('Keep at least one location.');return}places.splice(places.indexOf(p),1);if(selected===p)selected=places[0];updateCities()};card.append(remove);
  $('city').add(new Option(p.name+' · '+p.country,p.id));const th=document.createElement('th');th.textContent=p.name;$('tableHead').append(th);
  $('cards').append(card);
@@ -60,10 +60,11 @@ function buildCards(){ $('cards').replaceChildren();$('city').replaceChildren();
  }
  const bar=q('bar');bar.classList.add('interactive');
  const scrub=document.createElement('input');scrub.type='range';scrub.min='0';scrub.max='1439';scrub.step='1';scrub.className='city-scrub';scrub.setAttribute('aria-label',p.name+' time of day');bar.append(scrub);
- let scrubBase=null;
+ let scrubBase=null,scrubFrame=0,pendingMinute=null;
+ function flushScrub(){if(scrubFrame)cancelAnimationFrame(scrubFrame);scrubFrame=0;if(pendingMinute===null)return;const minute=pendingMinute;pendingMinute=null;const t=timelineTime(scrubBase??now(),p.zone,minute);if(t!==undefined)change(t,p)}
  scrub.addEventListener('pointerdown',()=>{scrubBase=now()});
- for(const event of ['pointerup','pointercancel','lostpointercapture','blur'])scrub.addEventListener(event,()=>{scrubBase=null});
- scrub.oninput=()=>{const t=timelineTime(scrubBase??now(),p.zone,+scrub.value);if(t!==undefined)change(t,p)};
+ for(const event of ['pointerup','pointercancel','lostpointercapture','blur'])scrub.addEventListener(event,()=>{flushScrub();scrubBase=null});
+ scrub.oninput=()=>{pendingMinute=+scrub.value;if(!scrubFrame)scrubFrame=requestAnimationFrame(flushScrub)};scrub.onchange=flushScrub;
  q('period').onclick=()=>shift(local(now(),p.zone).h<12?12:-12,HOUR);
  return {p,card,h:q('hour'),m:q('minute'),a:q('period'),date:q('date'),phase:q('phase'),art:q('landscape'),bar:q('bar')};
 });
